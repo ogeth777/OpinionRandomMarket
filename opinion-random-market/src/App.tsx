@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEvents } from './hooks/useEvents';
 import { HorizontalScroller } from './components/HorizontalScroller';
 import { Loader2 } from 'lucide-react';
@@ -67,6 +67,15 @@ function App() {
       alert('Link copied to clipboard!');
     }
   };
+
+  // Когда цены YES/NO обновились в events — подтягиваем свежий объект в winner
+  useEffect(() => {
+    if (!winner) return;
+    const updated = events.find(e => e.id === winner.id);
+    if (updated && updated !== winner) {
+      setWinner(updated);
+    }
+  }, [events, winner]);
 
   return (
     <div className="min-h-screen bg-opinion-black text-white font-['Inter'] selection:bg-opinion-orange/30 overflow-x-hidden relative">

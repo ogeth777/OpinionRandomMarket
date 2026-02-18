@@ -48,14 +48,27 @@ const fetchTokenLatestPrice = async (tokenId: string): Promise<number | null> =>
 
     const raw = await response.json();
     const data: any = raw;
-    const priceStr =
+    let priceStr =
       data?.result?.price ??
       data?.result?.p ??
       data?.price ??
       null;
 
-    const price = priceStr != null ? parseFloat(String(priceStr)) : NaN;
-    if (Number.isNaN(price) || price <= 0 || price >= 1) {
+    if (typeof priceStr === 'string') {
+      priceStr = priceStr.replace('%', '').trim();
+    }
+
+    let price = priceStr != null ? parseFloat(String(priceStr)) : NaN;
+    if (Number.isNaN(price) || price <= 0) {
+      return null;
+    }
+
+    // API может вернуть 56 вместо 0.56 — нормализуем
+    if (price > 1 && price <= 100) {
+      price = price / 100;
+    }
+
+    if (price >= 1) {
       return null;
     }
 
