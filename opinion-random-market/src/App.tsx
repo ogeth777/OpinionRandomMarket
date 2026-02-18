@@ -82,7 +82,7 @@ function App() {
         <IconTicker />
       </header>
 
-      <main className="pt-28 pb-12 flex flex-col items-center min-h-screen relative z-10">
+      <main className="pt-40 pb-16 flex flex-col items-center min-h-screen relative z-10">
         
         {/* BIG BUTTON */}
         <div className="mb-12 z-20">
