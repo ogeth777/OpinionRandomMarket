@@ -5,6 +5,7 @@ export interface Market {
   outcomePrices: string[]; // ["0.99", "0.01"]
   volume: string | number;
   liquidity: string | number;
+  topicId?: string | number;
   image?: string;
   icon?: string;
   description?: string;
@@ -18,6 +19,7 @@ export interface OpinionEvent {
   id: string;
   title: string;
   slug: string;
+  topicId?: string | number;
   image?: string;
   icon?: string;
   description?: string;

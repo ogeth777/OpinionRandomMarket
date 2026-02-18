@@ -5,6 +5,7 @@ import { toPng } from 'html-to-image';
 import { ShareCard } from './ShareCard';
 import { Loader2 } from 'lucide-react';
 import type { OpinionEvent } from '../types';
+import { getOpinionMarketUrl } from '../utils/api';
 
 interface Props {
   winner: OpinionEvent;
@@ -14,6 +15,7 @@ interface Props {
 export const DetailView: React.FC<Props> = ({ winner, onShare }) => {
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const marketUrl = getOpinionMarketUrl(winner);
 
   const handleDownload = async () => {
     if (!shareCardRef.current || isDownloading) return;
@@ -119,7 +121,7 @@ export const DetailView: React.FC<Props> = ({ winner, onShare }) => {
 
             <div className="flex gap-4">
               <a 
-                href={`https://opinion.trade/?ref=RandomMarket&market=${encodeURIComponent(winner.slug || winner.markets[0]?.slug || winner.title)}`}
+                href={marketUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 bg-opinion-orange hover:bg-orange-600 text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(255,85,0,0.4)] hover:shadow-[0_0_30px_rgba(255,85,0,0.6)] hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 group/btn"

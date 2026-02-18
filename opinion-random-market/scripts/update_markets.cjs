@@ -67,16 +67,17 @@ async function main() {
         let count = 0;
         for (const m of list) {
             if (count >= 20) break;
-            // Opinion API returns marketTitle, volume, etc. We synthesize an event wrapper.
             const eventData = {
                 id: `op-${m.marketId}`,
                 title: m.marketTitle,
                 slug: String(m.marketId),
+                topicId: m.topicId || m.marketId,
                 image: "https://opinion.trade/static/opinion-logo.svg",
                 markets: [{
                     id: m.marketId,
                     question: m.marketTitle,
                     slug: String(m.marketId),
+                    topicId: m.topicId || m.marketId,
                     outcomePrices: ["0.50","0.50"],
                     volume: m.volume || '0',
                     liquidity: '0',

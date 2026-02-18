@@ -9,6 +9,7 @@ const OPINION_API_KEY =
 
 interface OpinionMarket {
   marketId: number;
+  topicId?: number;
   marketTitle: string;
   status: number;
   statusEnum: string;
@@ -27,9 +28,45 @@ interface OpinionResponse {
   };
 }
 
+const inferMarketImage = (title: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('bitcoin') || t.includes('btc')) {
+    return 'https://cryptologos.cc/logos/bitcoin-btc-logo.png';
+  }
+  if (t.includes('ethereum') || t.includes('eth')) {
+    return 'https://cryptologos.cc/logos/ethereum-eth-logo.png';
+  }
+  if (t.includes('solana') || t.includes('sol ')) {
+    return 'https://cryptologos.cc/logos/solana-sol-logo.png';
+  }
+  if (t.includes('bnb') || t.includes('binance')) {
+    return 'https://cryptologos.cc/logos/bnb-bnb-logo.png';
+  }
+  if (t.includes('apple')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg';
+  }
+  if (t.includes('inflation') || t.includes('cpi') || t.includes('fed') || t.includes('interest rate')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/e/e0/US_Dollar_Sign_font_awesome.svg';
+  }
+  if (t.includes('election') || t.includes('president') || t.includes('prime minister')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/5/5c/United_Nations_emblem_blue.svg';
+  }
+  if (t.includes('moon') || t.includes('mars') || t.includes('space')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg';
+  }
+  return '';
+};
+
 export const getOpinionMarketUrl = (event: OpinionEvent): string => {
-  // Do NOT synthesize numeric IDs from strings — that causes 404.
-  // Use slug if present, otherwise pass context via homepage params.
+  const topicFromEvent = (event as any).topicId;
+  const topicFromMarket = event?.markets?.[0] && (event.markets[0] as any).topicId;
+  const numericId = /^\d+$/.test(event.id) ? event.id : null;
+  const topicId = topicFromEvent || topicFromMarket || numericId;
+
+  if (topicId) {
+    return `https://app.opinion.trade/detail?topicId=${encodeURIComponent(String(topicId))}&ref=RandomMarket`;
+  }
+
   const slug = event?.slug || event?.markets?.[0]?.slug || '';
   if (slug) {
     return `https://opinion.trade/?ref=RandomMarket&market=${encodeURIComponent(slug)}`;
@@ -219,26 +256,35 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
       return OPINION_MARKETS;
     }
 
-    return list.map((market: any) => ({
-      id: market.marketId.toString(),
-      title: market.marketTitle,
-      slug: market.marketTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      image: "",
-      markets: [{
-        id: `m-${market.marketId}`,
-        question: market.marketTitle,
-        slug: market.marketTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        outcomePrices: ["0.5", "0.5"],
-        volume: parseFloat(market.volume),
+    return list.map((market: any) => {
+      const title = market.marketTitle || '';
+      const image = inferMarketImage(title);
+      const topicId = market.topicId ?? market.marketId;
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      return {
+        id: String(topicId ?? title),
+        title,
+        slug,
+        topicId,
+        image,
+        markets: [{
+          id: `m-${topicId ?? title}`,
+          question: title,
+          slug,
+          topicId,
+          outcomePrices: ["0.5", "0.5"],
+          volume: parseFloat(market.volume ?? '0'),
+          liquidity: 0,
+          active: market.status === 2,
+          closed: market.status !== 2
+        }],
+        volume: parseFloat(market.volume ?? '0'),
         liquidity: 0,
         active: market.status === 2,
         closed: market.status !== 2
-      }],
-      volume: parseFloat(market.volume),
-      liquidity: 0,
-      active: market.status === 2,
-      closed: market.status !== 2
-    }));
+      };
+    });
 
   } catch (error) {
     console.error("Failed to fetch from Opinion API:", error);
