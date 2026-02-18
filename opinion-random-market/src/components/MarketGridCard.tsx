@@ -16,9 +16,11 @@ export const MarketGridCard: React.FC<Props> = ({ event, isHighlighted, isWinner
   const noPrice = mainMarket?.outcomePrices?.[1] || '0';
   
   const baseImage = event.image || event.icon || '/opinion-logo.png';
-  const imageUrl = baseImage.startsWith('http')
+  const remoteImage = baseImage.startsWith('http')
     ? `https://wsrv.nl/?url=${encodeURIComponent(baseImage)}&w=600&h=600&fit=cover&a=attention`
     : baseImage;
+  const localImage = (event as any).topicId ? `/opinion-icons/${(event as any).topicId}.png` : '';
+  const initialSrc = localImage || remoteImage;
 
   return (
     <motion.div 
@@ -32,12 +34,15 @@ export const MarketGridCard: React.FC<Props> = ({ event, isHighlighted, isWinner
     >
       {/* Background Image */}
       <img 
-        src={imageUrl} 
+        src={initialSrc} 
         alt={event.title}
         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 hover:scale-110"
         onError={(e) => {
           const img = e.target as HTMLImageElement;
-          if (img.src.includes('opinion-logo.png')) {
+          if (img.src.includes('/opinion-icons/')) {
+             // local missing -> try remote
+             img.src = remoteImage || '/opinion-logo.png';
+          } else if (img.src.includes('opinion-logo.png')) {
              img.style.display = 'none'; 
              if (img.parentElement) img.parentElement.style.background = 'linear-gradient(45deg, #1a1a1a, #2a2a2a)';
           } else {

@@ -96,6 +96,12 @@ const inferMarketImage = (title: string): string => {
   if (t.includes('apple')) {
     return 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg';
   }
+   if (t.includes('hyperliquid')) {
+    return 'https://hyperliquid.xyz/logo512.png';
+  }
+  if (t.includes('lpl') || t.includes('lol pro league')) {
+    return 'https://upload.wikimedia.org/wikipedia/en/3/3f/League_of_Legends_Pro_League_logo.png';
+  }
   if (t.includes('inflation') || t.includes('cpi') || t.includes('fed') || t.includes('interest rate')) {
     return 'https://upload.wikimedia.org/wikipedia/commons/e/e0/US_Dollar_Sign_font_awesome.svg';
   }
@@ -104,6 +110,12 @@ const inferMarketImage = (title: string): string => {
   }
   if (t.includes('moon') || t.includes('mars') || t.includes('space')) {
     return 'https://upload.wikimedia.org/wikipedia/commons/e/e1/FullMoon2010.jpg';
+  }
+  if (t.includes('quake') || t.includes('earthquake')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Earthquake_icon.svg';
+  }
+  if (t.includes('epstein')) {
+    return 'https://upload.wikimedia.org/wikipedia/commons/9/99/Question_book-new.svg';
   }
   return '';
 };

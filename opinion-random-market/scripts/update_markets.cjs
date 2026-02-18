@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
+const { URL } = require('url');
 
 // Helper to fetch data
 function fetchUrl(url) {
@@ -29,6 +30,23 @@ function fetchUrl(url) {
     });
 }
 
+// Download binary file from url to filepath
+function downloadFile(url, destPath) {
+    return new Promise((resolve, reject) => {
+        const file = fs.createWriteStream(destPath);
+        https.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+            if (res.statusCode !== 200) {
+                file.close(() => fs.unlink(destPath, () => resolve(false)));
+                return resolve(false);
+            }
+            res.pipe(file);
+            file.on('finish', () => file.close(() => resolve(true)));
+        }).on('error', (err) => {
+            file.close(() => fs.unlink(destPath, () => resolve(false)));
+        });
+    });
+}
+
 // Helper to check if image exists
 function checkImage(url) {
     return new Promise((resolve) => {
@@ -39,6 +57,63 @@ function checkImage(url) {
         req.on('error', () => resolve(false));
         req.end();
     });
+}
+
+async function fetchTopicImageFlexible(topicId, fallbackTitle) {
+    // Try Opinion openapi endpoints if key present
+    const apiKey = process.env.OPINION_API_KEY || process.env.VITE_OPINION_API_KEY || '';
+    const pickImage = (obj) => {
+        if (!obj || typeof obj !== 'object') return null;
+        const candidates = [
+            obj?.result?.iconUrl, obj?.result?.icon, obj?.result?.logo, obj?.result?.cover, obj?.result?.imgUrl, obj?.result?.image, obj?.result?.topicIcon,
+            obj?.data?.iconUrl,   obj?.data?.icon,   obj?.data?.logo,   obj?.data?.cover,   obj?.data?.imgUrl,   obj?.data?.image,   obj?.data?.topicIcon,
+            obj?.iconUrl, obj?.icon, obj?.logo, obj?.cover, obj?.imgUrl, obj?.image, obj?.topicIcon
+        ];
+        const url = candidates.find(u => typeof u === 'string' && /^https?:\/\//i.test(u));
+        return url || null;
+    };
+    const tryEndpoint = (path) => new Promise((resolve) => {
+        const base = `https://proxy.opinion.trade:8443/openapi${path}`;
+        const u = new URL(base);
+        if (!u.searchParams.has('topic_id')) u.searchParams.append('topic_id', String(topicId));
+        const headers = { 'User-Agent': 'Mozilla/5.0' };
+        if (apiKey) headers['apikey'] = apiKey;
+        https.get(u.toString(), { headers }, (res) => {
+            let buf = '';
+            res.on('data', c => buf += c);
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(buf);
+                    resolve(json);
+                } catch {
+                    resolve(null);
+                }
+            });
+        }).on('error', () => resolve(null));
+    });
+    const endpoints = ['/topic/detail', '/topic', '/topic/get'];
+    for (const ep of endpoints) {
+        const json = await tryEndpoint(ep);
+        const img = pickImage(json);
+        if (img) return img;
+    }
+    // Fallback: parse og:image from public page via r.jina.ai
+    const ogProxy = `https://r.jina.ai/http://app.opinion.trade/detail?topicId=${encodeURIComponent(String(topicId))}`;
+    const html = await new Promise((resolve) => {
+        https.get(ogProxy, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+            let buf = '';
+            res.on('data', c => buf += c);
+            res.on('end', () => resolve(buf));
+        }).on('error', () => resolve(''));
+    });
+    const m = html && html.match(/property=["']og:image["']\s+content=["']([^"']+)["']/i);
+    if (m && m[1]) {
+        let url = m[1].trim();
+        if (url.startsWith('//')) url = 'https:' + url;
+        if (url.startsWith('/')) url = 'https://app.opinion.trade' + url;
+        if (/^https?:\/\//i.test(url)) return url;
+    }
+    return null;
 }
 
 async function main() {
@@ -64,20 +139,40 @@ async function main() {
         const list = eventsResp.result?.list || [];
         console.log(`Fetched ${list.length} markets from Opinion`);
         const validEvents = [];
+        // Ensure local icons directory
+        const iconsDir = path.join(__dirname, '../public/opinion-icons');
+        if (!fs.existsSync(iconsDir)) fs.mkdirSync(iconsDir, { recursive: true });
         let count = 0;
         for (const m of list) {
             if (count >= 20) break;
+            const topicId = m.topicId || m.marketId;
+            // Try to fetch and download official icon for this topic
+            let localIconPath = `/opinion-icons/${topicId}.png`;
+            const absIconPath = path.join(iconsDir, `${topicId}.png`);
+            try {
+                const imgUrl = await fetchTopicImageFlexible(topicId, m.marketTitle);
+                if (imgUrl) {
+                    const ok = await downloadFile(imgUrl, absIconPath);
+                    if (!ok) {
+                        localIconPath = "https://opinion.trade/static/opinion-logo.svg";
+                    }
+                } else {
+                    localIconPath = "https://opinion.trade/static/opinion-logo.svg";
+                }
+            } catch {
+                localIconPath = "https://opinion.trade/static/opinion-logo.svg";
+            }
             const eventData = {
                 id: `op-${m.marketId}`,
                 title: m.marketTitle,
                 slug: String(m.marketId),
-                topicId: m.topicId || m.marketId,
-                image: "https://opinion.trade/static/opinion-logo.svg",
+                topicId,
+                image: localIconPath,
                 markets: [{
                     id: m.marketId,
                     question: m.marketTitle,
                     slug: String(m.marketId),
-                    topicId: m.topicId || m.marketId,
+                    topicId,
                     outcomePrices: ["0.50","0.50"],
                     volume: m.volume || '0',
                     liquidity: '0',

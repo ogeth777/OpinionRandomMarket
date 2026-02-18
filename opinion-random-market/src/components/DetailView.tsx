@@ -39,12 +39,20 @@ export const DetailView: React.FC<Props> = ({ winner }) => {
               tiltMaxAngleY={15}
             >
               <img 
-                src={`https://wsrv.nl/?url=${encodeURIComponent(winner.image || winner.icon || '')}&w=800&h=800&fit=cover&a=attention`}
+                src={(winner as any).topicId ? `/opinion-icons/${(winner as any).topicId}.png` : (winner.image ? `https://wsrv.nl/?url=${encodeURIComponent(winner.image)}&w=800&h=800&fit=cover&a=attention` : '/opinion-logo.png')}
                 alt={winner.title}
                 className="w-full h-full object-cover" 
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
-                  if (img.src.includes('opinion-logo.png')) {
+                  if (img.src.includes('/opinion-icons/')) {
+                      // local missing -> try remote image if available
+                      if (winner.image) {
+                        img.src = `https://wsrv.nl/?url=${encodeURIComponent(winner.image)}&w=800&h=800&fit=cover&a=attention`;
+                      } else {
+                        img.src = '/opinion-logo.png';
+                        img.className = "w-full h-full object-contain p-12 opacity-50";
+                      }
+                  } else if (img.src.includes('opinion-logo.png')) {
                       img.style.display = 'none';
                   } else {
                       img.src = '/opinion-logo.png';
