@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { OpinionEvent } from '../types';
-import { fetchEvents } from '../utils/api';
+import { fetchEvents, getOpinionMarketUrl } from '../utils/api';
 
 export const useEvents = () => {
   const [events, setEvents] = useState<OpinionEvent[]>([]);
@@ -41,16 +41,10 @@ export const useEvents = () => {
           if (!cancelled) {
             setEvents(validEvents);
           }
-          // Expose current markets and their Opinion links to window for debugging/export
+          // Expose current markets and their actual "Trade on Opinion" links
           if (typeof window !== 'undefined') {
             (window as any).opinionEvents = validEvents;
-            (window as any).opinionMarketLinks = validEvents.map((e) => {
-              const topicFromEvent = (e as any).topicId;
-              const topicFromMarket = e?.markets?.[0] && (e.markets[0] as any).topicId;
-              const numericId = /^\d+$/.test(e.id) ? e.id : null;
-              const topicId = topicFromEvent || topicFromMarket || numericId || e.id;
-              return `https://app.opinion.trade/detail?topicId=${encodeURIComponent(String(topicId))}`;
-            });
+            (window as any).opinionMarketLinks = validEvents.map((e) => getOpinionMarketUrl(e));
             console.log('Opinion roulette links:', (window as any).opinionMarketLinks);
           }
         }
