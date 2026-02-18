@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'opinion_visitor_stats_v2'; // reset stats
-const BASE_TOTAL = 0; 
-const DAILY_GROWTH_MIN = 2;
+const STORAGE_KEY = 'opinion_visitor_stats_v3'; // reset stats again
+const BASE_TOTAL = 1; 
+const DAILY_GROWTH_MIN = 4;
 const DAILY_GROWTH_MAX = 8;
 
 interface VisitorData {
@@ -50,10 +50,11 @@ export const VisitorStats = () => {
         }
       }
     } else {
+      const initialToday = Math.floor(Math.random() * (DAILY_GROWTH_MAX - DAILY_GROWTH_MIN + 1)) + DAILY_GROWTH_MIN;
       currentData = {
-        total: BASE_TOTAL + 15,
-        today: 15,
-        week: 15,
+        total: BASE_TOTAL,
+        today: initialToday,
+        week: initialToday,
         lastVisit: today
       };
     }
