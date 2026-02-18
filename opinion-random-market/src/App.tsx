@@ -6,6 +6,7 @@ import type { OpinionEvent } from './types';
 import { OpinionLogo } from './components/OpinionLogo';
 import { Background } from './components/Background';
 import { DetailView } from './components/DetailView';
+import { IconTicker } from './components/IconTicker';
 import confetti from 'canvas-confetti';
 import { playWin, initAudio } from './utils/sound';
 import { VisitorStats } from './components/VisitorStats';
@@ -71,11 +72,14 @@ function App() {
     <div className="min-h-screen bg-opinion-black text-white font-['Inter'] selection:bg-opinion-orange/30 overflow-x-hidden relative">
       <Background />
       
-      <header className="fixed top-0 left-0 right-0 z-40 bg-opinion-black/80 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
-        <OpinionLogo />
-        <div className="hidden md:block text-xs font-mono text-gray-500 uppercase tracking-widest">
-          {loading ? 'SYNCING MARKET DATA...' : <span className="text-opinion-orange/80">{events.length} ACTIVE MARKETS</span>}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-opinion-black/80 backdrop-blur-xl border-b border-white/5">
+        <div className="px-6 py-4 flex justify-between items-center">
+          <OpinionLogo />
+          <div className="hidden md:block text-xs font-mono text-gray-500 uppercase tracking-widest">
+            {loading ? 'SYNCING MARKET DATA...' : <span className="text-opinion-orange/80">{events.length} ACTIVE MARKETS</span>}
+          </div>
         </div>
+        <IconTicker />
       </header>
 
       <main className="pt-28 pb-12 flex flex-col items-center min-h-screen relative z-10">
