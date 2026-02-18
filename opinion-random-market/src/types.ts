@@ -5,6 +5,8 @@ export interface Market {
   outcomePrices: string[]; // ["0.99", "0.01"]
   volume: string | number;
   liquidity: string | number;
+  yesTokenId?: string;
+  noTokenId?: string;
   topicId?: string | number;
   image?: string;
   icon?: string;

@@ -8,9 +8,14 @@ export const useEvents = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false;
+    let isInitialLoad = true;
+
+    const load = async (showSpinner: boolean) => {
       try {
-        setLoading(true);
+        if (showSpinner) {
+          setLoading(true);
+        }
         setError(null);
         
         console.log('Hook: Starting fetchEvents...');
@@ -33,16 +38,34 @@ export const useEvents = () => {
         if (validEvents.length === 0) {
           setError('No valid events found after filtering.');
         } else {
-          setEvents(validEvents);
+          if (!cancelled) {
+            setEvents(validEvents);
+          }
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load events');
         console.error('Hook Error:', err);
       } finally {
-        setLoading(false);
+        if (!cancelled && showSpinner) {
+          setLoading(false);
+        }
       }
     };
-    load();
+    
+    // Initial load with spinner
+    load(true);
+
+    // Periodic refresh without spinner to keep YES/NO prices fresh
+    const interval = setInterval(() => {
+      if (!cancelled) {
+        load(false);
+      }
+    }, 60000); // every 60 seconds
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
 
   return { events, loading, error };

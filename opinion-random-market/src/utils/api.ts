@@ -322,6 +322,8 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
           question: title,
           slug,
           topicId,
+          yesTokenId: market.yesTokenId,
+          noTokenId: market.noTokenId,
           outcomePrices: [String(yesProb), String(noProb)],
           volume: parseFloat(market.volume ?? '0'),
           liquidity: 0,
