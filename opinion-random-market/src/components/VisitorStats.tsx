@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'opinion_visitor_stats_v4'; // reset stats to total 5
-const BASE_TOTAL = 5; 
+const STORAGE_KEY = 'opinion_visitor_stats_v5'; // full reset, start from zero
+const BASE_TOTAL = 0; 
 const DAILY_GROWTH_MIN = 4;
 const DAILY_GROWTH_MAX = 8;
 
@@ -43,8 +43,8 @@ export const VisitorStats = () => {
           currentData.week += missedVisitors; // Simply add to week for now
           
           // Reset "today" count for the new day
-          // Start with a random small number for "today" so it's not 0
-          currentData.today = Math.floor(Math.random() * 5) + 2; 
+          // Start with realistic daily growth range 4–8
+          currentData.today = Math.floor(Math.random() * (DAILY_GROWTH_MAX - DAILY_GROWTH_MIN + 1)) + DAILY_GROWTH_MIN; 
           
           currentData.lastVisit = today;
         }
@@ -52,8 +52,8 @@ export const VisitorStats = () => {
     } else {
       currentData = {
         total: BASE_TOTAL,
-        today: BASE_TOTAL,
-        week: BASE_TOTAL,
+        today: 0,
+        week: 0,
         lastVisit: today
       };
     }
