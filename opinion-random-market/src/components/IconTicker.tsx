@@ -10,7 +10,6 @@ export const IconTicker: React.FC = () => {
       <span className="font-medium">Trade</span>
       <span className="font-medium">Tomorrow</span>
       <span className="font-medium">Now</span>
-      <img src="/icons.svg" alt="Icons" className="h-3 w-auto opacity-90" />
     </div>
   );
 
