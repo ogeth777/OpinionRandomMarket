@@ -9,7 +9,7 @@ interface Props {
   onSpinEnd?: (winner: OpinionEvent) => void;
 }
 
-const GRID_SIZE = 24; // Number of cards to show in the grid
+const MAX_GRID_SIZE = 20;
 
 export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEnd }) => {
   const [displayEvents, setDisplayEvents] = useState<OpinionEvent[]>([]);
@@ -18,6 +18,8 @@ export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEn
   const [winner, setWinner] = useState<OpinionEvent | null>(null);
   
   // Audio refs could be added here for sound effects
+
+  const getGridSize = () => Math.min(MAX_GRID_SIZE, allEvents.length || 0);
 
   // Initialize grid with random events on mount or when allEvents changes
   useEffect(() => {
@@ -28,8 +30,9 @@ export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEn
 
   const resetGrid = () => {
     if (allEvents.length === 0) return;
+    const size = getGridSize();
     const shuffled = [...allEvents].sort(() => 0.5 - Math.random());
-    setDisplayEvents(shuffled.slice(0, GRID_SIZE));
+    setDisplayEvents(shuffled.slice(0, size));
     setHighlightIndex(-1);
     setWinner(null);
   };
@@ -42,21 +45,22 @@ export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEn
     setWinner(null);
     setHighlightIndex(-1);
 
-    // 1. Pick a winner from ALL events
-    const pickedWinner = getRandomItem(allEvents);
+    const size = getGridSize();
+    if (size === 0) {
+      setIsSpinning(false);
+      return;
+    }
+
+    // 1. Shuffle all events и выбрать победителя
+    const shuffled = [...allEvents].sort(() => 0.5 - Math.random());
+    const pickedWinner = getRandomItem(shuffled);
     if (!pickedWinner) return;
 
     // 2. Prepare the grid
-    // Ensure winner is in the grid.
-    let newGrid = [...displayEvents];
-    
-    // If we want a fresh grid every time:
-    const randomSubset = [...allEvents].sort(() => 0.5 - Math.random()).slice(0, GRID_SIZE - 1);
-    newGrid = randomSubset;
-    
-    // Insert winner at random position
-    const winnerPos = Math.floor(Math.random() * GRID_SIZE);
-    newGrid.splice(winnerPos, 0, pickedWinner);
+    const newGrid = shuffled.slice(0, size);
+
+    // Позиция победителя в текущей сетке (гарантированно есть и один раз)
+    const winnerPos = newGrid.findIndex(e => e.id === pickedWinner.id);
     
     setDisplayEvents(newGrid);
 
@@ -70,7 +74,8 @@ export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEn
     
     const tick = () => {
       // Calculate current highlight index
-      const idx = step % GRID_SIZE;
+      const currentSize = newGrid.length || size;
+      const idx = step % currentSize;
       setHighlightIndex(idx);
       
       // Scroll to it
@@ -82,7 +87,7 @@ export const GridRoulette: React.FC<Props> = ({ allEvents, onSpinStart, onSpinEn
       // Check if finished
       // Logic: we want to stop exactly at winnerPos after some rounds
       // Let's say we want to run at least 'minSteps'
-      const minSteps = GRID_SIZE * 2;
+      const minSteps = currentSize * 2;
       
       if (step >= minSteps && idx === winnerPos) {
         // STOP
