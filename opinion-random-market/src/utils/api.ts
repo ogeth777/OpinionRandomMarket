@@ -108,6 +108,81 @@ const inferMarketImage = (title: string): string => {
   return '';
 };
 
+// Try to find an official icon/image for a topic directly from Opinion
+const fetchTopicImageFlexible = async (topicId: number | string, fallbackTitle?: string): Promise<string> => {
+  try {
+    // Helper to safely extract a URL from arbitrary response shapes
+    const pickImage = (obj: any): string | null => {
+      if (!obj || typeof obj !== 'object') return null;
+      const candidates = [
+        obj?.result?.iconUrl, obj?.result?.icon, obj?.result?.logo, obj?.result?.cover, obj?.result?.imgUrl, obj?.result?.image, obj?.result?.topicIcon,
+        obj?.data?.iconUrl,   obj?.data?.icon,   obj?.data?.logo,   obj?.data?.cover,   obj?.data?.imgUrl,   obj?.data?.image,   obj?.data?.topicIcon,
+        obj?.iconUrl, obj?.icon, obj?.logo, obj?.cover, obj?.imgUrl, obj?.image, obj?.topicIcon
+      ];
+      const url = candidates.find((u: any) => typeof u === 'string' && /^https?:\/\//i.test(u));
+      return url || null;
+    };
+
+    // Attempt several API endpoints (with key if available)
+    const tryEndpoint = async (path: string) => {
+      const url = new URL(`${OPINION_API_URL}${path}`);
+      if (path.includes('?')) {
+        // path already has query
+      } else {
+        // noop
+      }
+      // Add query if needed
+      if (path.includes('topic') && path.includes('?') && !path.includes('topic_id=')) {
+        url.searchParams.append('topic_id', String(topicId));
+      }
+      if (!path.includes('?')) {
+        // default ?topic_id=
+        url.searchParams.append('topic_id', String(topicId));
+      }
+      const resp = await fetch(url.toString(), {
+        headers: OPINION_API_KEY ? { apikey: OPINION_API_KEY, 'Content-Type': 'application/json' } : {}
+      });
+      if (!resp.ok) return null;
+      const json = await resp.json().catch(() => null);
+      return json;
+    };
+
+    const endpoints = [
+      `/topic/detail`,
+      `/topic`,
+      `/topic/get`,
+    ];
+
+    for (const ep of endpoints) {
+      try {
+        const json = await tryEndpoint(ep);
+        const img = pickImage(json);
+        if (img) return img;
+      } catch {}
+    }
+
+    // Fallback: parse og:image from the public detail page via CORS-friendly proxy
+    // r.jina.ai fetches remote content with permissive CORS
+    const ogProxy = `https://r.jina.ai/http://app.opinion.trade/detail?topicId=${encodeURIComponent(String(topicId))}`;
+    const text = await fetch(ogProxy).then(r => r.ok ? r.text() : '').catch(() => '');
+    if (text) {
+      const m = text.match(/property=["']og:image["']\s+content=["']([^"']+)["']/i);
+      if (m && m[1]) {
+        let url = m[1].trim();
+        if (url.startsWith('//')) url = 'https:' + url;
+        if (url.startsWith('/')) url = 'https://app.opinion.trade' + url;
+        if (/^https?:\/\//i.test(url)) {
+          return url;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  // Last resort: heuristic by title
+  return inferMarketImage(String(fallbackTitle || ''));
+};
+
 export const getOpinionMarketUrl = (event: OpinionEvent): string => {
   const topicFromEvent = (event as any).topicId;
   const topicFromMarket = event?.markets?.[0] && (event.markets[0] as any).topicId;
@@ -309,8 +384,14 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
 
     const enriched = await Promise.all(list.map(async (market: any) => {
       const title = market.marketTitle || '';
-      const image = inferMarketImage(title);
+      // Try to retrieve official topic image/icon; fallback to heuristic
+      let image = '';
       const topicId = market.topicId ?? market.marketId;
+      try {
+        image = await fetchTopicImageFlexible(topicId, title);
+      } catch {
+        image = inferMarketImage(title);
+      }
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
       let yesProb = 0.5;
