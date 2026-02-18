@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'opinion_visitor_stats_v5'; // full reset, start from zero
-const BASE_TOTAL = 0; 
-const DAILY_GROWTH_MIN = 4;
-const DAILY_GROWTH_MAX = 8;
+const STORAGE_KEY = 'opinion_visitor_stats_v6'; // новая система роста
+
+// План роста по дням: первый день 5, дальше цикл 6-8-9-10-4
+const INITIAL_DAY_TOTAL = 5;
+const DAILY_SEQUENCE = [6, 8, 9, 10, 4];
 
 interface VisitorData {
   total: number;
   today: number;
   week: number;
   lastVisit: string;
+  dayIndex: number; // 0 — первый день (5 пользователей), 1 — второй и т.д.
 }
 
 export const VisitorStats = () => {
-  const [stats, setStats] = useState<VisitorData>({ total: BASE_TOTAL, today: 0, week: 0, lastVisit: '' });
+  const [stats, setStats] = useState<VisitorData>({ total: 0, today: 0, week: 0, lastVisit: '', dayIndex: 0 });
   const [liveViewers, setLiveViewers] = useState<number>(3);
 
   useEffect(() => {
@@ -33,35 +35,38 @@ export const VisitorStats = () => {
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays > 0) {
-          // Add accumulated visitors for missed days
-          let missedVisitors = 0;
+          // Прошло несколько дней — для каждого дня добавляем прирост из последовательности
           for (let i = 0; i < diffDays; i++) {
-            missedVisitors += Math.floor(Math.random() * (DAILY_GROWTH_MAX - DAILY_GROWTH_MIN + 1)) + DAILY_GROWTH_MIN;
+            const nextDayIndex = currentData.dayIndex + 1;
+            const seqIndex = (nextDayIndex - 1) % DAILY_SEQUENCE.length;
+            const inc = DAILY_SEQUENCE[seqIndex];
+
+            currentData.total += inc;
+            currentData.week += inc;
+            currentData.dayIndex = nextDayIndex;
           }
-          
-          currentData.total += missedVisitors;
-          currentData.week += missedVisitors; // Simply add to week for now
-          
-          // Reset "today" count for the new day
-          // Start with realistic daily growth range 4–8
-          currentData.today = Math.floor(Math.random() * (DAILY_GROWTH_MAX - DAILY_GROWTH_MIN + 1)) + DAILY_GROWTH_MIN; 
-          
+
+          // Для текущего дня today = инкремент последнего дня
+          const lastSeqIndex = (currentData.dayIndex - 1) % DAILY_SEQUENCE.length;
+          currentData.today = DAILY_SEQUENCE[lastSeqIndex];
           currentData.lastVisit = today;
         }
       }
     } else {
+      // Первый день: 5 пользователей
       currentData = {
-        total: BASE_TOTAL,
-        today: 0,
-        week: 0,
-        lastVisit: today
+        total: INITIAL_DAY_TOTAL,
+        today: INITIAL_DAY_TOTAL,
+        week: INITIAL_DAY_TOTAL,
+        lastVisit: today,
+        dayIndex: 0
       };
     }
 
     setStats(currentData);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData));
 
-    // Live update interval
+    // Live update interval (только колебания LIVE, без накрутки total/today/week)
     const interval = setInterval(() => {
       // 1. Live viewers fluctuation
       setLiveViewers(prev => {
@@ -71,20 +76,6 @@ export const VisitorStats = () => {
         if (newVal > 9) newVal = 9;
         return newVal;
       });
-
-      // 2. Randomly add new visitor (rare event)
-      if (Math.random() > 0.85) {
-        setStats(prev => {
-          const newData = {
-            ...prev,
-            total: prev.total + 1,
-            today: prev.today + 1,
-            week: prev.week + 1
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
-          return newData;
-        });
-      }
     }, 4000);
 
     return () => clearInterval(interval);
