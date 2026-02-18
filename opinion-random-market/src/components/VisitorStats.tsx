@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'opinion_visitor_stats_v6'; // новая система роста
+const STORAGE_KEY = 'opinion_visitor_stats_v7';
 
-// План роста по дням: первый день 110, дальше цикл 6-8-9-10-4
 const INITIAL_DAY_TOTAL = 110;
 const DAILY_SEQUENCE = [6, 8, 9, 10, 4];
 
