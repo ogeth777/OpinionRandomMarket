@@ -28,6 +28,44 @@ interface OpinionResponse {
   };
 }
 
+const fetchTokenLatestPrice = async (tokenId: string): Promise<number | null> => {
+  if (!tokenId || !OPINION_API_KEY) return null;
+
+  try {
+    const url = new URL(`${OPINION_API_URL}/token/latest-price`);
+    url.searchParams.append('token_id', tokenId);
+
+    const response = await fetch(url.toString(), {
+      headers: {
+        apikey: OPINION_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Opinion latest-price error: ${response.status} ${response.statusText}`);
+    }
+
+    const raw = await response.json();
+    const data: any = raw;
+    const priceStr =
+      data?.result?.price ??
+      data?.result?.p ??
+      data?.price ??
+      null;
+
+    const price = priceStr != null ? parseFloat(String(priceStr)) : NaN;
+    if (Number.isNaN(price) || price <= 0 || price >= 1) {
+      return null;
+    }
+
+    return price;
+  } catch (err) {
+    console.warn('Failed to fetch latest price for token', tokenId, err);
+    return null;
+  }
+};
+
 const inferMarketImage = (title: string): string => {
   const t = title.toLowerCase();
   if (t.includes('bitcoin') || t.includes('btc')) {
@@ -232,7 +270,7 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
     const url = new URL(`${OPINION_API_URL}/market`);
     url.searchParams.append('status', 'activated');
     url.searchParams.append('sortBy', '5'); // 24h volume
-    url.searchParams.append('limit', '50');
+    url.searchParams.append('limit', '20');
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -256,11 +294,22 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
       return OPINION_MARKETS;
     }
 
-    return list.map((market: any) => {
+    const enriched = await Promise.all(list.map(async (market: any) => {
       const title = market.marketTitle || '';
       const image = inferMarketImage(title);
       const topicId = market.topicId ?? market.marketId;
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+      let yesProb = 0.5;
+      try {
+        const latestYes = await fetchTokenLatestPrice(market.yesTokenId);
+        if (latestYes != null) {
+          yesProb = latestYes;
+        }
+      } catch {
+      }
+
+      const noProb = 1 - yesProb;
 
       return {
         id: String(topicId ?? title),
@@ -273,7 +322,7 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
           question: title,
           slug,
           topicId,
-          outcomePrices: ["0.5", "0.5"],
+          outcomePrices: [String(yesProb), String(noProb)],
           volume: parseFloat(market.volume ?? '0'),
           liquidity: 0,
           active: market.status === 2,
@@ -284,7 +333,9 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
         active: market.status === 2,
         closed: market.status !== 2
       };
-    });
+    }));
+
+    return enriched;
 
   } catch (error) {
     console.error("Failed to fetch from Opinion API:", error);

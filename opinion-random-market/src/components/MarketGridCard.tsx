@@ -15,8 +15,7 @@ export const MarketGridCard: React.FC<Props> = ({ event, isHighlighted, isWinner
   const yesPrice = mainMarket?.outcomePrices?.[0] || '0';
   const noPrice = mainMarket?.outcomePrices?.[1] || '0';
   
-  // Use event image or fallback
-  const imageUrl = event.image || event.icon || '/placeholder.png'; // Need a placeholder handling ideally
+  const imageUrl = event.image || event.icon || '/opinion-logo.png';
 
   return (
     <motion.div 
