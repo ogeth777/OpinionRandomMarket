@@ -15,7 +15,10 @@ export const MarketGridCard: React.FC<Props> = ({ event, isHighlighted, isWinner
   const yesPrice = mainMarket?.outcomePrices?.[0] || '0';
   const noPrice = mainMarket?.outcomePrices?.[1] || '0';
   
-  const imageUrl = event.image || event.icon || '/opinion-logo.png';
+  const baseImage = event.image || event.icon || '/opinion-logo.png';
+  const imageUrl = baseImage.startsWith('http')
+    ? `https://wsrv.nl/?url=${encodeURIComponent(baseImage)}&w=600&h=600&fit=cover&a=attention`
+    : baseImage;
 
   return (
     <motion.div 

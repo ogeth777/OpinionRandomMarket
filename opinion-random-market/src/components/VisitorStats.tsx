@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = 'opinion_visitor_stats_v1'; // Bump version for new structure
-const BASE_TOTAL = 124; 
+const STORAGE_KEY = 'opinion_visitor_stats_v2'; // reset stats
+const BASE_TOTAL = 0; 
 const DAILY_GROWTH_MIN = 2;
 const DAILY_GROWTH_MAX = 8;
 
@@ -13,7 +13,7 @@ interface VisitorData {
 }
 
 export const VisitorStats = () => {
-  const [stats, setStats] = useState<VisitorData>({ total: BASE_TOTAL, today: 12, week: 45, lastVisit: '' });
+  const [stats, setStats] = useState<VisitorData>({ total: BASE_TOTAL, today: 0, week: 0, lastVisit: '' });
   const [liveViewers, setLiveViewers] = useState<number>(3);
 
   useEffect(() => {
@@ -50,14 +50,10 @@ export const VisitorStats = () => {
         }
       }
     } else {
-      // First init
-      const startToday = Math.floor(Math.random() * 15) + 5;
-      const startWeek = Math.floor(Math.random() * 50) + 30;
-      
       currentData = {
-        total: BASE_TOTAL + Math.floor(Math.random() * 20),
-        today: startToday,
-        week: startWeek + startToday,
+        total: BASE_TOTAL + 15,
+        today: 15,
+        week: 15,
         lastVisit: today
       };
     }
