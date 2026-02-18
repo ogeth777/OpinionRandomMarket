@@ -187,7 +187,6 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
 
   if (!OPINION_API_KEY) {
     console.warn("No Opinion API Key found. Using Mock Data.");
-    // Simulate network delay for realistic feel
     await new Promise(resolve => setTimeout(resolve, 800));
     return OPINION_MARKETS;
   }
@@ -208,26 +207,30 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
     if (!response.ok) {
       throw new Error(`Opinion API Error: ${response.status} ${response.statusText}`);
     }
+    const raw = await response.json();
+    const data: any = raw;
+    const list =
+      data?.result?.list ||
+      data?.data?.list ||
+      (Array.isArray(data) ? data : null);
 
-    const data: OpinionResponse = await response.json();
-    
-    if (data.code !== 0 || !data.result?.list) {
-      throw new Error(`Opinion API Response Error: ${data.msg}`);
+    if (!list || !Array.isArray(list) || list.length === 0) {
+      console.warn("Opinion API returned no markets or unexpected shape, using mock data.");
+      return OPINION_MARKETS;
     }
 
-    // Map Opinion API response to our internal format
-    return data.result.list.map(market => ({
+    return list.map((market: any) => ({
       id: market.marketId.toString(),
       title: market.marketTitle,
       slug: market.marketTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      image: "", // We might need to map categories to images or fetch metadata
+      image: "",
       markets: [{
         id: `m-${market.marketId}`,
         question: market.marketTitle,
         slug: market.marketTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        outcomePrices: ["0.5", "0.5"], // Default as we don't have prices in list
+        outcomePrices: ["0.5", "0.5"],
         volume: parseFloat(market.volume),
-        liquidity: 0, // Not provided in list
+        liquidity: 0,
         active: market.status === 2,
         closed: market.status !== 2
       }],
