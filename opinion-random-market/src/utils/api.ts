@@ -396,14 +396,14 @@ export const fetchEvents = async (params: FetchParams = {}): Promise<OpinionEven
 
     const enriched = await Promise.all(list.map(async (market: any) => {
       const title = market.marketTitle || '';
-      // Try to retrieve official topic image/icon; fallback to heuristic
-      let image = '';
       const topicId = market.topicId ?? market.marketId;
-      try {
-        image = await fetchTopicImageFlexible(topicId, title);
-      } catch {
-        image = inferMarketImage(title);
-      }
+
+      // Легковесная логика картинок: сначала пробуем то, что даёт API,
+      // без дополнительных запросов, потом — эвристика по названию.
+      let image: string =
+        market.icon ||
+        market.image ||
+        inferMarketImage(title);
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
       let yesProb = 0.5;

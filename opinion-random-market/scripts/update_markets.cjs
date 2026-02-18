@@ -117,7 +117,9 @@ async function fetchTopicImageFlexible(topicId, fallbackTitle) {
 }
 
 async function main() {
-    const apiKey = process.env.OPINION_API_KEY || process.env.VITE_OPINION_API_KEY || '';
+    // Normalize API key to avoid invalid header characters
+    const rawKey = process.env.OPINION_API_KEY || process.env.VITE_OPINION_API_KEY || '';
+    const apiKey = rawKey ? String(rawKey).replace(/[\x00-\x1F\x7F'"]/g, '').trim() : '';
     if (apiKey) {
         console.log('Fetching markets from Opinion OpenAPI...');
         const url = 'https://proxy.opinion.trade:8443/openapi/market?status=activated&sortBy=5&limit=20';
